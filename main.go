@@ -3,8 +3,17 @@ package main
 import (
 	"html/template"
 	"net/http"
-)
+	"github.com/satori/go.uuid"
 
+)
+type user struct{
+username string
+first string
+last string
+}
+
+var dbSessions= map[string]string{}
+var dbUsers= map[string]user{}
 var tpl *template.Template
 
 func init() {
@@ -18,5 +27,18 @@ func main() {
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
-	tpl.ExecuteTemplate(w, "index.gohtml", nil)	//executes index.gohtml
+	c:=getCookie(w,req) 											//to get cookie in index
+	tpl.ExecuteTemplate(w, "index.gohtml", c)	//executes index.gohtml
+}
+
+func getCookie(w http.ResponseWriter, req *http.Request) *http.Cookie{		//used to generate cookie
+	c, err := req.Cookie("Session")
+	if err!=nil{
+		sID, _:= uuid.NewV4()
+		c = &http.Cookie{
+			Name:"Session",
+			Value:sID.String(),
+		}
+	}
+	return c
 }
