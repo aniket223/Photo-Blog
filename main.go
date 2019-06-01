@@ -1,15 +1,15 @@
 package main
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"github.com/satori/go.uuid"
 	"html/template"
-	"net/http"
-	"strings"
-	"fmt"
 	"io"
+	"net/http"
 	"os"
-	"crypto/sha1"
 	"path/filepath"
+	"strings"
 )
 
 type user struct {
@@ -35,35 +35,35 @@ func main() {
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
-	c := getCookie(w, req)                          //to get cookie in index
-	if req.Method==http.MethodPost{
-		mf,fh,err:= req.FormFile("nf")
-		if err!=nil{
+	c := getCookie(w, req) //to get cookie in index
+	if req.Method == http.MethodPost {
+		mf, fh, err := req.FormFile("nf")
+		if err != nil {
 			fmt.Println(err)
 		}
 		defer mf.Close()
 		ext := strings.Split(fh.Filename, ".")[1]
-		h:=sha1.New()
-		io.Copy(h,mf)
-		fname:=fmt.Sprintf("%x",h.Sum(nil))+"."+ext
+		h := sha1.New()
+		io.Copy(h, mf)
+		fname := fmt.Sprintf("%x", h.Sum(nil)) + "." + ext
 		//create new file
-		wd,err:=os.Getwd()
-		if err!=nil{
+		wd, err := os.Getwd()
+		if err != nil {
 			fmt.Println(err)
 		}
-		path:=filepath.Join(wd,"public","pics",fname)
-		nf,err:=os.Create(path)
-		if err!=nil{
+		path := filepath.Join(wd, "public", "pics", fname)
+		nf, err := os.Create(path)
+		if err != nil {
 			fmt.Println(err)
 		}
 		defer nf.Close()
 		//copy
-		mf.Seek(0,0)
-		io.Copy(nf,mf)
+		mf.Seek(0, 0)
+		io.Copy(nf, mf)
 		//add filename to user's cookie
-		c=appendValue(w,c,fname)
+		c = appendValue(w, c, fname)
 	}
-	xs:= strings.Split(c.Value,"|")
+	xs := strings.Split(c.Value, "|")
 	tpl.ExecuteTemplate(w, "index.gohtml", xs) //executes index.gohtml with value of cookie
 }
 
@@ -81,11 +81,11 @@ func getCookie(w http.ResponseWriter, req *http.Request) *http.Cookie { //used t
 
 func appendValue(w http.ResponseWriter, c *http.Cookie, fname string) *http.Cookie {
 	// values
-	s:=c.Value
-	if !strings.Contains(s,fname){
-		s+="|"+fname
+	s := c.Value
+	if !strings.Contains(s, fname) {
+		s += "|" + fname
 	}
-	c.Value=s
-	http.SetCookie(w,c)
+	c.Value = s
+	http.SetCookie(w, c)
 	return c
 }
