@@ -5,6 +5,11 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"fmt"
+	"io"
+	"os"
+	"crypto/sha1"
+	"path/filepath"
 )
 
 type user struct {
@@ -24,13 +29,36 @@ func init() {
 func main() {
 	http.HandleFunc("/", index)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
-	http.ListenAndServe(":8080", nil) //default serve mux
+	http.ListenAndServe(":8081", nil) //default serve mux
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
 	c := getCookie(w, req)                          //to get cookie in index
-	c = appendValue(w, c)
-	xs := strings.Split(c.Value, "|")
+	if req.Method==http.MethodPost{
+		mf,fh,err:= req.FormFile("nf")
+		if err!=nil{
+			fmt.Println(err)
+		}
+		defer mf.Close()
+		ext := strings.Split(fh.Filename, ".")[1]
+		h:=sha1.New()
+		io.Copy(h,mf)
+		fname:=fmt.Sprintf("%x",h.Sum(nil))+"."+ext
+		wd,err:=os.Getwd()
+		if err!=nil{
+			fmt.Println(err)
+		}
+		path:=filepath.Join(wd,"public","pics",fname)
+		nf,err:=os.Create(path)
+		if err!=nil{
+			fmt.Println(err)
+		}
+		defer nf.Close()
+		mf.Seek(0,0)
+		io.Copy(nf,mf)
+		c=appendValue(w,c,fname)
+	}
+	xs:= strings.Split(c.Value,"|")
 	tpl.ExecuteTemplate(w, "index.gohtml", xs) //executes index.gohtml with value of cookie
 }
 
@@ -46,23 +74,13 @@ func getCookie(w http.ResponseWriter, req *http.Request) *http.Cookie { //used t
 	return c
 }
 
-func appendValue(w http.ResponseWriter, c *http.Cookie) *http.Cookie {
+func appendValue(w http.ResponseWriter, c *http.Cookie, fname string) *http.Cookie {
 	// values
-	p1 := "disneyland.jpg"
-	p2 := "atbeach.jpg"
-	p3 := "hollywood.jpg"
-	// append
-	s := c.Value
-	if !strings.Contains(s, p1) {
-		s += "|" + p1
+	s:=c.Value
+	if !strings.Contains(s,fname){
+		s+="|"+fname
 	}
-	if !strings.Contains(s, p2) {
-		s += "|" + p2
-	}
-	if !strings.Contains(s, p3) {
-		s += "|" + p3
-	}
-	c.Value = s
-	http.SetCookie(w, c)
+	c.Value=s
+	http.SetCookie(w,c)
 	return c
 }
