@@ -44,6 +44,7 @@ func index(w http.ResponseWriter, req *http.Request) {
 		h:=sha1.New()
 		io.Copy(h,mf)
 		fname:=fmt.Sprintf("%x",h.Sum(nil))+"."+ext
+		//create new file
 		wd,err:=os.Getwd()
 		if err!=nil{
 			fmt.Println(err)
@@ -54,8 +55,10 @@ func index(w http.ResponseWriter, req *http.Request) {
 			fmt.Println(err)
 		}
 		defer nf.Close()
+		//copy
 		mf.Seek(0,0)
 		io.Copy(nf,mf)
+		//add filename to user's cookie
 		c=appendValue(w,c,fname)
 	}
 	xs:= strings.Split(c.Value,"|")
